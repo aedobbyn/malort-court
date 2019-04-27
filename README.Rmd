@@ -2,14 +2,7 @@
 output: github_document
 ---
 
-# Malort Court Isn't Fair
-
-- Tweets in `data`
-- Pics in `pics`
-
-:)
-
-```{r, echo = FALSE}
+```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -21,6 +14,12 @@ knitr::opts_chunk$set(
 )
 ```
 
+# Malort Court Isn't Fair
+  
+- Tweets in `data`
+- Pics in `pics`
+
+:)
 
 ```{r}
 library(fs)
