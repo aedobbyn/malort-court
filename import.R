@@ -7,7 +7,7 @@ library(tidyverse)
 
 try_get_timeline <- possibly(get_timeline, otherwise = NULL)
 
-get_mc_tweets <- function(reg = "#malortcourt|#MalortCourt", 
+get_mc_tweets <- function(reg = "(#*)[Mm]alort(\\s*)[Cc]ourt", 
                           max_iters = 10, 
                           n_per_pull = 3200, 
                           verbose = TRUE) {
@@ -56,26 +56,20 @@ get_mc_tweets <- function(reg = "#malortcourt|#MalortCourt",
 
 raw <- get_mc_tweets()
 
-# Actual months malort court took place
-month_year_dict <- 
-  tribble(
-    ~c_year, ~c_month,
-    2015, 10,
-    2016, 12,
-    2017, 10, 
-    2018, 10, 
-    2019, 01
-  )
-
 tweets <-
   raw %>% 
+  arrange(created_at) %>% 
+  mutate(
+    text = text %>% str_replace_all("&amp", "&")
+  ) %>% 
   select(text, created_at, 
          favorite_count, retweet_count, 
          hashtags, media_url, status_id) %>% 
   rename(like_count = favorite_count) %>% 
   mutate(
     year = lubridate::year(created_at),
-    month = lubridate::month(created_at)
+    month = lubridate::month(created_at),
+    day = lubridate::day(created_at)
   ) %>% 
   left_join(month_year_dict, 
             by = c("year" = "c_year")) %>%
@@ -88,6 +82,41 @@ tweets <-
   ) %>% 
   select(-c_month) %>% 
   rowwise() %>% 
-  mutate(hashtags = str_c(hashtags, collapse = ", "))
+  mutate(hashtags = str_c(hashtags, collapse = ", ")) %>% 
+  ungroup()
+
+
+# Get actual month and day malort court took place by number of tweets tweeted
+ymd_dict <-
+  tweets %>% 
+  count(year, month, day, sort = TRUE) %>% 
+  distinct(year, .keep_all = TRUE) %>%  # Keep day and month w top n tweets
+  arrange(year, month, day)
+
+last_tweet <-
+  tweets %>% 
+  filter(
+    str_detect(text, "ajourned|adjourned|wraps up")
+  ) %>% 
+  select(text, status_id, year, month) 
+
+ymd_dict <-
+  ymd_dict %>% 
+  left_join(last_tweet, by = c("year", "month")) %>% 
+  rename(
+    ending_status_id = status_id
+  )
+
+
+
+get_more_tweets <- function() {
+  for (i in seq(nrow(ymd_dict))) {
+    first_status_id <- 
+      raw %>% 
+      filter(status_id == min(as.numeric(status_id)))
+    
+    
+  }
+}
 
 
