@@ -25,6 +25,7 @@ knitr::opts_chunk$set(
 library(fs)
 library(glue)
 library(here)
+library(knitr)
 library(tidyverse)
 ```
 
@@ -35,5 +36,22 @@ some_pics <- dir_ls(here("pics")) %>%
   str_extract_all("pics.+")
 ```
 
-
 ![](./pics/1053704347891130368-Dp-Cg1mUcAA_AkX.jpg)
+
+### Top two tweets per year
+
+```{r}
+tweets <- read_csv(here("data", "tweets.csv"))
+
+tweets %>% 
+  group_by(year) %>% 
+  arrange(desc(like_count)) %>% 
+  select(like_count, year, text) %>% 
+  slice(1:2) %>% 
+  kable()
+```
+
+
+
+
+
