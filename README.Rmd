@@ -16,10 +16,9 @@ knitr::opts_chunk$set(
 
 # Malort Court Isn't Fair
   
-- Tweets in `data`
-- Pics in `pics`
+* Tweets in `data`
+* Pics in `pics`
 
-:)
 
 ```{r}
 library(fs)
@@ -36,9 +35,13 @@ some_pics <- dir_ls(here("pics")) %>%
   str_extract_all("pics.+")
 ```
 
-![](./pics/1053704347891130368-Dp-Cg1mUcAA_AkX.jpg)
 
-### Top two tweets per year
+<p align="center">
+  <img src="./pics/1053704347891130368-Dp-Cg1mUcAA_AkX.jpg" height="500px">
+</p>
+
+
+### Top three tweets per year
 
 ```{r}
 tweets <- read_csv(here("data", "tweets.csv"))
@@ -46,8 +49,11 @@ tweets <- read_csv(here("data", "tweets.csv"))
 tweets %>% 
   group_by(year) %>% 
   arrange(desc(like_count)) %>% 
+  mutate(
+    text = text %>% str_replace_all("\\n", "       ")
+  ) %>% 
   select(like_count, year, text) %>% 
-  slice(1:2) %>% 
+  slice(1:3) %>% 
   kable()
 ```
 
