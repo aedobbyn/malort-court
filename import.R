@@ -1,4 +1,3 @@
-
 library(fs)
 library(glue)
 library(here)
@@ -126,6 +125,7 @@ ymd_dict <-
   distinct(year, .keep_all = TRUE) %>% # Keep day and month w top n tweets
   arrange(year, month, day)
 
+# Find the beginning and ending tweet for each year
 first_tweet <-
   tweets %>%
   filter(
@@ -140,6 +140,7 @@ last_tweet <-
   ) %>%
   select(text, status_id, year, month)
 
+# Get the year, month, day, beginning and ending tweets for each malort court
 bounds <-
   ymd_dict %>%
   left_join(first_tweet %>% select(-text), by = c("year", "month")) %>%
@@ -173,7 +174,7 @@ full <- get_mc_tweets(
 ) %>%
   clean_tweets(status_as_numeric = TRUE)
 
-# Filter to only the ones that are between the ids where malort court took place
+# Filter to only the ones that are between the ids where malort court took place (within the id_boundaries)
 tweets <-
   full %>%
   filter(
