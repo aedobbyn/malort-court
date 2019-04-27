@@ -40,7 +40,7 @@ get_mc_tweets <- function(reg = "(#*)[Mm]alort(\\s*)[Cc]ourt",
       this %>%
       filter(status_id == min(as.numeric(status_id))) %>%
       pull(status_id)
-    
+
     if (filter_to_reg) {
       this <-
         this %>%
@@ -53,26 +53,24 @@ get_mc_tweets <- function(reg = "(#*)[Mm]alort(\\s*)[Cc]ourt",
 
     i <- i + 1
   }
-  
+
   if (min_id > 0) {
-    out <- 
-      out %>% 
+    out <-
+      out %>%
       filter(as.numeric(status_id) >= min_id)
   }
-  
+
   if (is.finite(max_id)) {
-    out <- 
-      out %>% 
+    out <-
+      out %>%
       filter(as.numeric(status_id) <= max_id)
   }
 
   out
 }
 
-raw <- get_mc_tweets()
-
 clean_tweets <- function(tbl, status_as_numeric = FALSE) {
-  out <- tbl %>% 
+  out <- tbl %>%
     arrange(created_at) %>%
     mutate(
       text = text %>% str_replace_all("&amp", "&")
@@ -89,7 +87,7 @@ clean_tweets <- function(tbl, status_as_numeric = FALSE) {
       day = lubridate::day(created_at)
     ) %>%
     left_join(month_year_dict,
-              by = c("year" = "c_year")
+      by = c("year" = "c_year")
     ) %>%
     mutate(
       in_court =
@@ -102,10 +100,10 @@ clean_tweets <- function(tbl, status_as_numeric = FALSE) {
     rowwise() %>%
     mutate(hashtags = str_c(hashtags, collapse = ", ")) %>%
     ungroup()
-  
+
   if (status_as_numeric) {
-    out <- 
-      out %>% 
+    out <-
+      out %>%
       mutate(
         status_id = as.numeric(status_id)
       )
@@ -113,9 +111,13 @@ clean_tweets <- function(tbl, status_as_numeric = FALSE) {
   out
 }
 
-tweets <-
+# Grab all tweets that contain malort court
+raw_mc <- get_mc_tweets()
+
+clean_mc <-
   raw %>%
   clean_tweets()
+
 
 # Get actual month and day malort court took place by number of tweets tweeted
 ymd_dict <-
@@ -149,34 +151,35 @@ bounds <-
     ending_status_id = status_id
   )
 
-
-id_boundaries <- 
+id_boundaries <-
   suppressWarnings({
-    bounds %>% 
-      rowwise() %>% 
+    bounds %>%
+      rowwise() %>%
       mutate(
-        ineq = glue(">= {as.numeric(beginning_status_id)} & status_id <= {as.numeric(ending_status_id)}")
-      ) %>% 
-      ungroup() %>% 
-      pull(ineq) %>% 
-      str_c(collapse = ") || ( status_id ")
+        ineq = glue("(status_id >= {as.numeric(beginning_status_id)} & status_id <= {as.numeric(ending_status_id)}) ")
+      ) %>%
+      ungroup() %>%
+      pull(ineq) %>%
+      str_c(collapse = " | ")
   })
-  
 
 
-full <- get_mc_tweets(filter_to_reg = FALSE, 
-                      min_id = min(as.numeric(bounds$beginning_status_id)),
-                      max_id = max(as.numeric(bounds$ending_status_id))
-                      ) %>% 
-  clean_tweets(status_as_numeric = TRUE) 
 
+# Grab all tweets, even if they don't contain malort court
+full <- get_mc_tweets(
+  filter_to_reg = FALSE,
+  min_id = min(as.numeric(bounds$beginning_status_id)),
+  max_id = max(as.numeric(bounds$ending_status_id))
+) %>%
+  clean_tweets(status_as_numeric = TRUE)
 
-mc <-
-  full %>% 
+# Filter to only the ones that are between the ids where malort court took place
+tweets <-
+  full %>%
   filter(
     (status_id >= 650439476628451328 & status_id <= 650467989666435072) |
-      ( status_id >= 806186436995256320 & status_id <= 810339253930618880) |
-      ( status_id >= 921887456865275904 & status_id <= 921909940838596608) |
-      ( status_id >= 1053704347891130368 & status_id <= 1053862055017467904) |
-      ( status_id >= 1084277365851615232 & status_id <= 1084278626411900928)
-)
+      (status_id >= 806186436995256320 & status_id <= 810339253930618880) |
+      (status_id >= 921887456865275904 & status_id <= 921909940838596608) |
+      (status_id >= 1053704347891130368 & status_id <= 1053862055017467904) |
+      (status_id >= 1084277365851615232 & status_id <= 1084278626411900928)
+  )

@@ -1,6 +1,6 @@
 
 tweets_export <-
-  mc %>%
+  tweets %>%
   rowwise() %>%
   mutate(media_url = str_c(media_url, collapse = ", "))
 
