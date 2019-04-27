@@ -5,11 +5,7 @@ library(here)
 library(rtweet)
 library(tidyverse)
 
-search_tweets(q = "#MalortCourt",
-              n = 500)
-
 try_get_timeline <- possibly(get_timeline, otherwise = NULL)
-
 
 get_mc_tweets <- function(reg = "#malortcourt|#MalortCourt", 
                           max_iters = 10, 
@@ -60,7 +56,6 @@ get_mc_tweets <- function(reg = "#malortcourt|#MalortCourt",
 
 raw <- get_mc_tweets()
 
-
 # Actual months malort court took place
 month_year_dict <- 
   tribble(
@@ -72,12 +67,12 @@ month_year_dict <-
     2019, 01
   )
 
-
-dat <-
+tweets <-
   raw %>% 
   select(text, created_at, 
          favorite_count, retweet_count, 
          hashtags, media_url, status_id) %>% 
+  rename(like_count = favorite_count) %>% 
   mutate(
     year = lubridate::year(created_at),
     month = lubridate::month(created_at)
@@ -91,6 +86,8 @@ dat <-
         TRUE ~ FALSE
       )
   ) %>% 
-  select(-c_month)
+  select(-c_month) %>% 
+  rowwise() %>% 
+  mutate(hashtags = str_c(hashtags, collapse = ", "))
 
 
