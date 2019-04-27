@@ -113,17 +113,17 @@ clean_tweets <- function(tbl, status_as_numeric = FALSE) {
 # Grab all tweets that contain malort court
 raw_mc <- get_mc_tweets()
 
+# Get actual month and day malort court took place by number of tweets tweeted
+ymd_dict <-
+  raw_mc %>%
+  count(year, month, day, sort = TRUE) %>%
+  distinct(year, .keep_all = TRUE) %>% # Keep day and month w top n tweets
+  arrange(year, month, day)
+
 clean_mc <-
   raw %>%
   clean_tweets()
 
-
-# Get actual month and day malort court took place by number of tweets tweeted
-ymd_dict <-
-  tweets %>%
-  count(year, month, day, sort = TRUE) %>%
-  distinct(year, .keep_all = TRUE) %>% # Keep day and month w top n tweets
-  arrange(year, month, day)
 
 # Find the beginning and ending tweet for each year
 first_tweet <-

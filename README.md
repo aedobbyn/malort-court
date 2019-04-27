@@ -30,3 +30,28 @@
 |           7 | 2019 | OMG malort court plea: cassie can either eat all the beanboozled beans by 11 pm OR learn a new @TheFitMarshall dance before 11 pm (that we do not already know as a team) and dance at 11 pm\!\!\!                                                                                 |
 |           6 | 2019 | first citation: telling everyone she was good at parallel parking but entered the space forward first                                                                                                                                                                              |
 |           5 | 2019 | the flexing in. \#malortcourtpt2 <https://t.co/I50XyBh6KA>                                                                                                                                                                                                                         |
+
+<br> <br>
+
+### Methodology if you’re curious
+
+  - Pull in all tweets that contain some version of “malort court” or
+    “\#malortcourt” using this regex `(#*)[Mm]alort(\\s*)[Cc]ourt`
+  - Figure out what the year, month, and day of the actual malort court
+    was based on the top number of tweets containing the malort court
+    regex
+  - Clean those tweets up, add year, month, day, whether they happened
+    on the day of an acutal malort court or not, etc.
+  - Find the first tweet and last tweet of each malort court day (just
+    eyeballed it lol)
+  - Grab *all* the tweets ever tweeted by the account after the first
+    ever malort court tweet in 2015
+  - Filter those tweets to ones that happened before the first and last
+    malort court tweets every year, so we don’t keep anything that’s not
+    malort court-related
+  - Save that in `data`
+  - Download and store any pics associated with tweets in the `pics`
+    directory
+      - They’re named based on `{tweet's status_id}-{tweet's url
+        id}.{url's extension}`
+  - Yay 😆
