@@ -1,3 +1,6 @@
+---
+output: github_document
+---
 
 # Malort Court Isn't Fair
 
