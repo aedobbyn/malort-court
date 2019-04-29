@@ -68,7 +68,7 @@ tweets %>%
 * Figure out what the year, month, and day of the actual malort court was based on the top number of tweets containing the malort court regex
 * Clean those tweets up, add year, month, day, whether they happened on the day of an acutal malort court or not, etc.
 * Find the first tweet and last tweet of each malort court day (just eyeballed it lol)
-* Grab *all* the tweets ever tweeted by the account after the first ever malort court tweet in 2015
+* Butttttt, not all malort court tweets have "malort court" in the tweet itself. SO, grab *all* the tweets ever tweeted by the account after the first ever malort court tweet in 2015
 * Filter those tweets to ones that happened before the first and last malort court tweets every year, so we don't keep anything that's not malort court-related
 * Save that in `data`
 * Download and store any pics associated with tweets in the `pics` directory

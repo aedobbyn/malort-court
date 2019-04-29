@@ -68,39 +68,40 @@ get_mc_tweets <- function(reg = "(#*)[Mm]alort(\\s*)[Cc]ourt",
   out
 }
 
-clean_tweets <- function(tbl, status_as_numeric = FALSE) {
-  out <- tbl %>%
-    arrange(created_at) %>%
-    mutate(
-      text = text %>% str_replace_all("&amp", "&")
-    ) %>%
-    select(
-      text, created_at,
-      favorite_count, retweet_count,
-      hashtags, media_url, status_id
-    ) %>%
-    rename(like_count = favorite_count) %>%
+add_ymd <- function(tbl) {
+  tbl %>% 
     mutate(
       year = lubridate::year(created_at),
       month = lubridate::month(created_at),
       day = lubridate::day(created_at)
-    ) %>%
-    left_join(month_year_dict,
-      by = c("year" = "c_year")
-    ) %>%
+    ) 
+}
+
+clean_tweets <- function(tbl, status_as_numeric = FALSE) {
+  out <- tbl %>%
+    arrange(created_at) %>%
     mutate(
-      in_court =
+      text = text %>% str_replace_all("&amp", "&"),
+      is_nemesis_tweet = 
         case_when(
-          month == c_month ~ TRUE,
+          user_id == "606461527" ~ TRUE,
           TRUE ~ FALSE
         )
     ) %>%
-    select(-c_month) %>%
+    select(
+      text, created_at,
+      favorite_count, retweet_count,
+      hashtags, media_url, 
+      status_id, is_nemesis_tweet
+    ) %>%
+    rename(like_count = favorite_count) %>%
+    add_ymd() %>% 
     rowwise() %>%
     mutate(hashtags = str_c(hashtags, collapse = ", ")) %>%
     ungroup()
 
   if (status_as_numeric) {
+    # Do we want this displayed in scientific notation or kept as character
     out <-
       out %>%
       mutate(
@@ -116,12 +117,13 @@ raw_mc <- get_mc_tweets()
 # Get actual month and day malort court took place by number of tweets tweeted
 ymd_dict <-
   raw_mc %>%
+  add_ymd() %>% 
   count(year, month, day, sort = TRUE) %>%
   distinct(year, .keep_all = TRUE) %>% # Keep day and month w top n tweets
   arrange(year, month, day)
 
 clean_mc <-
-  raw %>%
+  raw_mc %>%
   clean_tweets()
 
 
@@ -167,11 +169,14 @@ id_boundaries <-
 
 
 # Grab all tweets, even if they don't contain malort court
-full <- get_mc_tweets(
+full_raw <- get_mc_tweets(
   filter_to_reg = FALSE,
   min_id = min(as.numeric(bounds$beginning_status_id)),
   max_id = max(as.numeric(bounds$ending_status_id))
-) %>%
+) 
+
+full <- 
+  full_raw %>%
   clean_tweets(status_as_numeric = TRUE)
 
 # Filter to only the ones that are between the ids where malort court took place (within the id_boundaries)
@@ -184,3 +189,25 @@ tweets <-
       (status_id >= 1053704347891130368 & status_id <= 1053862055017467904) |
       (status_id >= 1084277365851615232 & status_id <= 1084278626411900928)
   )
+
+# nEmmys intermission 
+nemmys_2016_ids <-
+  full %>% 
+  filter(
+    text %>% str_detect("Even when the season is over|5 minute intermission")
+  ) %>% 
+  pull(status_id) %>% 
+  sort()
+
+tweets <-
+  tweets %>% 
+  mutate(
+    during_nemmys = 
+      case_when(
+        (as.numeric(status_id) >= nemmys_2016_ids[1] & 
+          as.numeric(status_id) <= nemmys_2016_ids[2]) ~ TRUE,
+        TRUE ~ FALSE
+      ),
+    status_id = as.character(status_id)
+  )
+
