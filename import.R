@@ -77,6 +77,32 @@ add_ymd <- function(tbl) {
     ) 
 }
 
+pull_retweet_username <- function(t) {
+  if (t$is_retweet) {
+    t$mentions_screen_name[[1]]
+  } else {
+    "ChicagoNemesis"
+  }
+}
+
+# pull_retweet_username <- function() {
+#   tbl %>% 
+#     mutate(
+#       retweet_source = 
+#         pull_retweet_username()
+#     ) 
+# }
+
+# tweets <-
+# tweets %>%
+# mutate(
+#   text =
+#     case_when(
+#       is_nemesis_tweet == FALSE ~ glue("*{text}*"),
+#       TRUE ~ text
+#     )
+# )
+
 clean_tweets <- function(tbl, status_as_numeric = FALSE) {
   out <- tbl %>%
     arrange(created_at) %>%
@@ -84,7 +110,7 @@ clean_tweets <- function(tbl, status_as_numeric = FALSE) {
       text = text %>% str_replace_all("&amp", "&"),
       is_nemesis_tweet = 
         case_when(
-          user_id == "606461527" ~ TRUE,
+          is_retweet ~ FALSE,
           TRUE ~ FALSE
         )
     ) %>%
@@ -154,6 +180,7 @@ bounds <-
     ending_status_id = status_id
   )
 
+# Put those bounds into a single string that we can use to filter on full
 id_boundaries <-
   suppressWarnings({
     bounds %>%
@@ -165,7 +192,8 @@ id_boundaries <-
       pull(ineq) %>%
       str_c(collapse = " | ")
   })
-
+### Evaluates to:
+# "(status_id >= 650439476628451328 & status_id <= 650467989666435072)  | (status_id >= 806186436995256320 & status_id <= 810339253930618880)  | (status_id >= 921887456865275904 & status_id <= 921909940838596608)  | (status_id >= 1053704347891130368 & status_id <= 1053862055017467904)  | (status_id >= 1084277365851615232 & status_id <= 1084278626411900928) "
 
 
 # Grab all tweets, even if they don't contain malort court
@@ -180,15 +208,14 @@ full <-
   clean_tweets(status_as_numeric = TRUE)
 
 # Filter to only the ones that are between the ids where malort court took place (within the id_boundaries)
-tweets <-
-  full %>%
-  filter(
-    (status_id >= 650439476628451328 & status_id <= 650467989666435072) |
-      (status_id >= 806186436995256320 & status_id <= 810339253930618880) |
-      (status_id >= 921887456865275904 & status_id <= 921909940838596608) |
-      (status_id >= 1053704347891130368 & status_id <= 1053862055017467904) |
-      (status_id >= 1084277365851615232 & status_id <= 1084278626411900928)
-  )
+filter_tweets <- function(tbl = full, exp = id_boundaries) {
+  q_exp <- rlang::parse_expr(exp)
+  
+  tbl %>% 
+    filter(!!q_exp)
+}
+
+tweets <- filter_tweets()
 
 # nEmmys intermission 
 nemmys_2016_ids <-
@@ -202,6 +229,7 @@ nemmys_2016_ids <-
 tweets <-
   tweets %>% 
   mutate(
+    # Be able to remove nemmys tweets with this boolean
     during_nemmys = 
       case_when(
         (as.numeric(status_id) >= nemmys_2016_ids[1] & 
