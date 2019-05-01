@@ -77,54 +77,25 @@ add_ymd <- function(tbl) {
     ) 
 }
 
-pull_retweet_username <- function(t) {
-  if (t$is_retweet) {
-    t$mentions_screen_name[[1]]
-  } else {
-    "ChicagoNemesis"
-  }
-}
-
-# pull_retweet_username <- function() {
-#   tbl %>% 
-#     mutate(
-#       retweet_source = 
-#         pull_retweet_username()
-#     ) 
-# }
-
-# tweets <-
-# tweets %>%
-# mutate(
-#   text =
-#     case_when(
-#       is_nemesis_tweet == FALSE ~ glue("*{text}*"),
-#       TRUE ~ text
-#     )
-# )
-
-clean_tweets <- function(tbl, status_as_numeric = FALSE) {
+clean_tweets <- function(tbl, 
+                         status_as_numeric = FALSE,
+                         add_other_handle_indicator = TRUE) {
   out <- tbl %>%
-    arrange(created_at) %>%
-    mutate(
-      text = text %>% str_replace_all("&amp", "&"),
-      is_nemesis_tweet = 
-        case_when(
-          is_retweet ~ FALSE,
-          TRUE ~ FALSE
-        )
-    ) %>%
     select(
       text, created_at,
       favorite_count, retweet_count,
       hashtags, media_url, 
-      status_id, is_nemesis_tweet
+      status_id, 
+      is_retweet, mentions_screen_name
+    ) %>% 
+    arrange(created_at) %>%
+    mutate(
+      text = text %>% str_replace_all("&amp", "&")
     ) %>%
     rename(like_count = favorite_count) %>%
     add_ymd() %>% 
     rowwise() %>%
-    mutate(hashtags = str_c(hashtags, collapse = ", ")) %>%
-    ungroup()
+    mutate(hashtags = str_c(hashtags, collapse = ", ")) 
 
   if (status_as_numeric) {
     # Do we want this displayed in scientific notation or kept as character
@@ -134,7 +105,33 @@ clean_tweets <- function(tbl, status_as_numeric = FALSE) {
         status_id = as.numeric(status_id)
       )
   }
-  out
+  
+  if (add_other_handle_indicator) {
+    # If a retweet, add the handle of the twitter account that we retweeted to the beginning of the tweet
+    suppressWarnings({
+      out <-
+        out %>%
+        rowwise() %>%
+        mutate(
+          tweeted_by = 
+            case_when(
+              is_retweet ~ mentions_screen_name %>% pluck(1),
+              TRUE ~ "ChicagoNemesis"
+            ),
+          text =
+            case_when(
+              tweeted_by != "ChicagoNemesis" ~ glue("**@{tweeted_by}**: {text}"),
+              TRUE ~ text
+            )
+        ) 
+    })
+  }
+  
+  out %>%
+    ungroup() %>% 
+    select(
+      text, everything(), -mentions_screen_name, 
+    )
 }
 
 # Grab all tweets that contain malort court
@@ -155,14 +152,14 @@ clean_mc <-
 
 # Find the beginning and ending tweet for each year
 first_tweet <-
-  tweets %>%
+  clean_mc %>%
   filter(
     str_detect(text, "begin #malortcourt|underway|Order|Emergency Hearing|#malortcourtpt2")
   ) %>%
   select(text, status_id, year, month)
 
 last_tweet <-
-  tweets %>%
+  clean_mc %>%
   filter(
     str_detect(text, "ajourned|adjourned|wraps up|will be recorded")
   ) %>%
@@ -217,7 +214,7 @@ filter_tweets <- function(tbl = full, exp = id_boundaries) {
 
 tweets <- filter_tweets()
 
-# nEmmys intermission 
+# nEmmys intermission in 2016
 nemmys_2016_ids <-
   full %>% 
   filter(
