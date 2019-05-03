@@ -7,12 +7,11 @@ pics <-
 
 # File name is {tweet's status_id}-{tweet's url id}.{url's extension}
 download_media <- function(tbl = pics, dir = here("pics"), destroy_existing = TRUE) {
-  
   if (destroy_existing) {
     if (dir_exists(dir)) {
       dir_delete(dir)
     }
-    
+
     dir_create(dir)
   } else {
     if (!dir_exists(dir)) {

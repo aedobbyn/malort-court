@@ -69,33 +69,33 @@ get_mc_tweets <- function(reg = "(#*)[Mm]alort(\\s*)[Cc]ourt",
 }
 
 add_ymd <- function(tbl) {
-  tbl %>% 
+  tbl %>%
     mutate(
       year = lubridate::year(created_at),
       month = lubridate::month(created_at),
       day = lubridate::day(created_at)
-    ) 
+    )
 }
 
-clean_tweets <- function(tbl, 
+clean_tweets <- function(tbl,
                          status_as_numeric = FALSE,
                          add_other_handle_indicator = TRUE) {
   out <- tbl %>%
     select(
       text, created_at,
       favorite_count, retweet_count,
-      hashtags, media_url, 
-      status_id, 
+      hashtags, media_url,
+      status_id,
       is_retweet, mentions_screen_name
-    ) %>% 
+    ) %>%
     arrange(created_at) %>%
     mutate(
-      text = text %>% str_replace_all("&amp", "&")
+      text = text %>% str_replace_all("&amp;", "&")
     ) %>%
     rename(like_count = favorite_count) %>%
-    add_ymd() %>% 
+    add_ymd() %>%
     rowwise() %>%
-    mutate(hashtags = str_c(hashtags, collapse = ", ")) 
+    mutate(hashtags = str_c(hashtags, collapse = ", "))
 
   if (status_as_numeric) {
     # Do we want this displayed in scientific notation or kept as character
@@ -105,7 +105,7 @@ clean_tweets <- function(tbl,
         status_id = as.numeric(status_id)
       )
   }
-  
+
   if (add_other_handle_indicator) {
     # If a retweet, add the handle of the twitter account that we retweeted to the beginning of the tweet
     suppressWarnings({
@@ -113,7 +113,7 @@ clean_tweets <- function(tbl,
         out %>%
         rowwise() %>%
         mutate(
-          tweeted_by = 
+          tweeted_by =
             case_when(
               is_retweet ~ mentions_screen_name %>% pluck(1),
               TRUE ~ "ChicagoNemesis"
@@ -123,14 +123,14 @@ clean_tweets <- function(tbl,
               tweeted_by != "ChicagoNemesis" ~ glue("**@{tweeted_by}**: {text}"),
               TRUE ~ text
             )
-        ) 
+        )
     })
   }
-  
+
   out %>%
-    ungroup() %>% 
+    ungroup() %>%
     select(
-      text, everything(), -mentions_screen_name, 
+      text, everything(), -mentions_screen_name,
     )
 }
 
@@ -140,7 +140,7 @@ raw_mc <- get_mc_tweets()
 # Get actual month and day malort court took place by number of tweets tweeted
 ymd_dict <-
   raw_mc %>%
-  add_ymd() %>% 
+  add_ymd() %>%
   count(year, month, day, sort = TRUE) %>%
   distinct(year, .keep_all = TRUE) %>% # Keep day and month w top n tweets
   arrange(year, month, day)
@@ -198,17 +198,17 @@ full_raw <- get_mc_tweets(
   filter_to_reg = FALSE,
   min_id = min(as.numeric(bounds$beginning_status_id)),
   max_id = max(as.numeric(bounds$ending_status_id))
-) 
+)
 
-full <- 
+full <-
   full_raw %>%
   clean_tweets(status_as_numeric = TRUE)
 
 # Filter to only the ones that are between the ids where malort court took place (within the id_boundaries)
 filter_tweets <- function(tbl = full, exp = id_boundaries) {
   q_exp <- rlang::parse_expr(exp)
-  
-  tbl %>% 
+
+  tbl %>%
     filter(!!q_exp)
 }
 
@@ -216,23 +216,22 @@ tweets <- filter_tweets()
 
 # nEmmys intermission in 2016
 nemmys_2016_ids <-
-  full %>% 
+  full %>%
   filter(
     text %>% str_detect("Even when the season is over|5 minute intermission")
-  ) %>% 
-  pull(status_id) %>% 
+  ) %>%
+  pull(status_id) %>%
   sort()
 
 tweets <-
-  tweets %>% 
+  tweets %>%
   mutate(
     # Be able to remove nemmys tweets with this boolean
-    during_nemmys = 
+    during_nemmys =
       case_when(
-        (as.numeric(status_id) >= nemmys_2016_ids[1] & 
+        (as.numeric(status_id) >= nemmys_2016_ids[1] &
           as.numeric(status_id) <= nemmys_2016_ids[2]) ~ TRUE,
         TRUE ~ FALSE
       ),
     status_id = as.character(status_id)
   )
-
